@@ -50,17 +50,22 @@ I start by preparing "object points", which will be the (x, y, z) coordinates of
 
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+Undistortion applied to one of the test images:
+
 ![alt text][image3]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used only color thresholds with a region mask to generate a binary image. `binary_thresh()` combines H, L, S of the HLS color space and B of the LAB color space.
+I used only color thresholds with a region mask to generate a binary image. `binary_thresh()` combines H, L, S of the HLS color space and B of the LAB color space to output a binary image. Since the saturation channel was prone to change in brightness, hue was ANDed with saturation to make it more robust
 
 ![alt text][image4]
 
-Gradient thresholding with the sobel operator added noise and wasn't too helpful. The final thresholding was `(S & H) | B | L`. A region mask was applied to discard other information such as the trees and sky.  
-Here's an example of my output for this step.
+Gradient thresholding with the sobel operator added noise and wasn't too helpful. The final thresholding was 
+
+`(S & H) | B | L`
+
+A region mask was applied to discard other information such as the trees and sky. 
+Here's the final combination on a test image:
 
 ![alt text][image5]
 
@@ -87,7 +92,7 @@ Once we've established valid lane lines in one frame, `find_lanes_prev_fit()` ta
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-`get_radius_curvature_center_offset()` takes the warped image, left and right lane pixels, scales them to meters, fits a second order polynomial to them, returns the [radius of curvature](http://www.intmath.com/applications-differentiation/8-radius-curvature.php) and offset of the vehicle from the center of the lane. It assumes that the camera is mounted in the center of the vehicle. 
+`get_radius_curvature_center_offset()` takes the warped image, left and right lane pixels, scales them to meters, fits a second order polynomial to them, returns the [radius of curvature](http://www.intmath.com/applications-differentiation/8-radius-curvature.php) and offset of the vehicle from the center of the lane. It assumes that the camera is positioned at the center of the vehicle. 
 
 Radius of curvature:
 `rad_curv = ((1 + (2*fit_m[0]*y_eval + fit_m[1])**2)**1.5) / np.absolute(2*fit_m[0])`
@@ -95,7 +100,7 @@ Radius of curvature:
 Offset from center:
 ```python
 lane_center = (left_bottomxm + right_bottomxm)/2
-vehicle_pos = img_warped.shape[1]*xm_per_pix/2
+vehicle_pos = (img_warped.shape[1]/2) * xm_per_pix
 offset = lane_center - vehicle_pos 
 ```
 
@@ -108,11 +113,11 @@ Here is an example of my result on a test image:
 
 ![alt text][image8]
 
-Result on the test images:
+Pipeline on the test images:
 
 ![alt text][image9]
 
-For a video, lane lines are detected using `find_lanes_sliding_window()`. We use `find_lanes_prev_fit()` only if the previous lane lines are valid. Lane lines are valid if the mean distance between them is about 480px. If the lane lines are invalid, we resort to the previously detected lanes. The lane lines in the last 10 frames are averaged to smooth out outliers. 
+For a video, lane lines are detected using `find_lanes_sliding_window()`. We use `find_lanes_prev_fit()` only if the previous lane lines are valid. Lane lines are valid if the mean distance between them is about 480px. If the lane lines are invalid, we resort to the previously detected lanes. The lane lines in the last 10 frames are averaged to smooth out outliers and prevent jerks. 
 
 ---
 
@@ -130,10 +135,9 @@ Here's a [link to my result on the optional challenge](./challenge_video_result.
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-The main issue was playing around with gradients and color spaces to find the right balance of thresholds. The HLS space and the B channel of LAB worked quite well for the test images and the challenge video. The saturation channel of HLS gave decent results for the yellow and white lanes, although it was weak and prone to noise. The higher end of the B channel of the LAB space clearly filtered the yellow lane. Later when trying to fit a polynomial, I found out that the white lines in some images weren't very clear. The luminosity channel strengthened the white lanes. Since the saturation channel was prone to change in brightness, Hue was ANDed with Saturation to make it more robust. It would be desirable to discriminate the lanes better in other conditions.
+The main issue was playing around with gradients and color spaces to find the right balance of thresholds. The HLS space and the B channel of LAB worked quite well for the test images and the challenge video. The saturation channel of HLS gave decent results for the yellow and white lanes, although it was weak and prone to noise. The higher end of the B channel of the LAB space clearly filtered the yellow lane. Later when trying to fit a polynomial, I found out that the white lines in some images weren't very clear and was resulting in abnormal polynomial fits. The luminosity channel reinforced the white lanes. It would be desirable to discriminate the lanes better, especially in adverse conditions.
 
-In cases where one lane line is detected well (an extrapolated version of the previous fits) but the other lane is not valid, we can predict where the other lane will be since we know the distance between the two lanes. This will be helpful on sharp turns. Even if one lane is detected, the other can be predicted to be parallel to it. The current implementation uses an average of the previous n fits even if one lane is not detected and this might fail on sharp turns. 
+In cases where one lane line is detected well (an extrapolated version of the previous fits) but the other lane is not valid, we can predict where the other lane will be since we know the distance between the two lanes. This will be helpful for sharp turns. Even if one lane is detected, the other can be predicted to be parallel to it. The current implementation ignores lane even when one lane is not detected and resorts to an average of the previous n fits. This might fail on sharp turns where we don't have a decent detection of one lane. 
 On failure to detect both lanes, we can extrapolate the previous fits and use that for some frames ahead depending on the speed of the vehicle until we get a valid detection.
 
-One improvement would be to use a weighted average for smoothing the previous n fits instead of just a simple average. The weights can be a measure of how confident we are about the fit. One metric would be the mean distance between the lanes. This confidence measure can be used for adaptive thresholding to detect the lanes
-
+One improvement would be to use a weighted average for smoothing the previous n fits instead of just a simple average. The weights can be a measure of how confident we are about the fit. One metric would be the mean distance between the lanes.
