@@ -23,7 +23,7 @@ The goals / steps of this project are the following:
 [image6]: ./output_images/warped.jpg "warped"
 [image7]: ./output_images/sliding_window.jpg "sliding window"
 [image8]: ./output_images/result_test1.jpg "result"
-[image9]: ./output_images/result_testimgs.jpg "results"
+[image9]: ./output_images/result_testimgs.png "results"
 
 
 ---
@@ -56,10 +56,12 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used only color thresholds with a region mask to generate a binary image. `binary_thresh()` combines H, L, S of the HLS color space and B of the LAB color space.
+
 ![alt text][image4]
 
 Gradient thresholding with the sobel operator added noise and wasn't too helpful. The final thresholding was `(S & H) | B | L`. A region mask was applied to discard other information such as the trees and sky.  
 Here's an example of my output for this step.
+
 ![alt text][image5]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
@@ -107,6 +109,7 @@ Here is an example of my result on a test image:
 ![alt text][image8]
 
 Result on the test images:
+
 ![alt text][image9]
 
 For a video, lane lines are detected using `find_lanes_sliding_window()`. We use `find_lanes_prev_fit()` only if the previous lane lines are valid. Lane lines are valid if the mean distance between them is about 480px. If the lane lines are invalid, we resort to the previously detected lanes. The lane lines in the last 10 frames are averaged to smooth out outliers. 
@@ -119,7 +122,7 @@ For a video, lane lines are detected using `find_lanes_sliding_window()`. We use
 
 Here's a [link to my video result](./project_video_result.mp4)
 
-Here's a [link to the optional challenge video result](./challenge_video_result.mp4)
+Here's a [link to my result on the optional challenge](./challenge_video_result.mp4)
 
 ---
 
